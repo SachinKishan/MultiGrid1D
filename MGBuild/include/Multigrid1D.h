@@ -5,6 +5,32 @@
 #include "glm.hpp"
 
 #include "implot.h"
+void set_A(Eigen::SparseMatrix<float>& A, int nx, float dx)
+{
+    // List of triplets to hold the non-zero elements
+    std::vector<Eigen::Triplet<double>> tripletList;
+    tripletList.reserve(3 * nx - 2); // We have 3 diagonals: main, lower, upper
+
+    // Fill the triplet list with values corresponding to the diagonals
+    for (int i = 0; i < nx; ++i) {
+        if (i > 0) {
+            // Subdiagonal (below the main diagonal)
+            tripletList.emplace_back(i, i - 1, -1.0 / (dx * dx));
+        }
+
+        // Main diagonal
+        tripletList.emplace_back(i, i, 2.0 / (dx * dx));
+
+        if (i < nx - 1) {
+            // Superdiagonal (above the main diagonal)
+            tripletList.emplace_back(i, i + 1, -1.0 / (dx * dx));
+        }
+    }
+
+    // Set the matrix values from the triplet list
+    A.setFromTriplets(tripletList.begin(), tripletList.end());
+}
+
 
 Eigen::VectorXf prolongation_vector(Eigen::VectorXf r)
 {
@@ -92,7 +118,8 @@ Eigen::VectorXf weighted_gauss_jacobi(Eigen::SparseMatrix<float> A, Eigen::Vecto
     for(int i=0;i<nu;i++)
     {
         Eigen::VectorXf residual = f - off_diagonal*v;
-    	v = v + weight * inverse_diagonal.cwiseProduct(residual);
+        v = (1 - weight) * v + weight * inverse_diagonal.cwiseProduct(residual);
+
     }
     
     return v;

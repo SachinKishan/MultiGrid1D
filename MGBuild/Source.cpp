@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include "Multigrid1D.h"
+#include "Multigrid2D.h"
 #include "spectral.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -31,31 +32,7 @@ const char* fragmentShaderSource = "#version 330 core\n"
 "}\n\0";
 
 
-void set_A(Eigen::SparseMatrix<float> &A,int nx, float dx)
-{
-    // List of triplets to hold the non-zero elements
-    std::vector<Eigen::Triplet<double>> tripletList;
-    tripletList.reserve(3 * nx - 2); // We have 3 diagonals: main, lower, upper
 
-    // Fill the triplet list with values corresponding to the diagonals
-    for (int i = 0; i < nx; ++i) {
-        if (i > 0) {
-            // Subdiagonal (below the main diagonal)
-            tripletList.emplace_back(i, i - 1, -1.0 / (dx * dx));
-        }
-
-        // Main diagonal
-        tripletList.emplace_back(i, i, 2.0 / (dx * dx));
-
-        if (i < nx - 1) {
-            // Superdiagonal (above the main diagonal)
-            tripletList.emplace_back(i, i + 1, -1.0 / (dx * dx));
-        }
-    }
-
-    // Set the matrix values from the triplet list
-    A.setFromTriplets(tripletList.begin(), tripletList.end());
-}
 
 int main()
 {
@@ -190,7 +167,7 @@ int main()
     a = 0.0f;
     b = 1.5f;
 
-    int max_levels = 4; //the finest level it will go, also the level it starts from
+    int max_levels = 2; //the finest level it will go, also the level it starts from
     int nx = pow(2.0, max_levels) - 1;
     float dx = (b - a) / (nx + 1.0f);
 
@@ -209,20 +186,28 @@ int main()
 
     for(int i=0;i<nx;i++)
     {
-        output.push_back(function_sin(input[i], b - a));
+        output.push_back(function2d_analytical(input[i], input[i]));
     }
+    
 
+    
     //Av=f
     //laplace A
-	Eigen::SparseMatrix<float> A(nx, nx);
-    set_A(A, nx, dx);
-    //std::cout <<std::endl << A;
+    Eigen::SparseMatrix<float> A(nx, nx);
+
+    setLaplacian(A, dx, dx, nx, nx);
 
     //v
-    Eigen::VectorXf v(nx);
-    v.setRandom();
+    nx = 3;
+    Eigen::MatrixXf v(nx * nx,2);
+    v.setZero();
+	v.row(0) = Eigen::Vector2f(1, 1);
+    v.row(4) = Eigen::Vector2f(1, 1);
+    v.row(8) = Eigen::Vector2f(1, 1);
 
+    prolongate2d(v, nx, nx);
 
+    /*
     //f
     Eigen::VectorXf f(nx);
     for(int i=0;i<nx;i++)
@@ -239,7 +224,7 @@ int main()
     {
         solution_vector.push_back(solution(i));
     }
-
+    */
 	// render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -263,7 +248,7 @@ int main()
         ImGui::Begin("Multigrid test");
         ImGui::Text("1D Implementation");
 
-
+        /*
         if(ImGui::Button("One more cycle"))
         {
             solution = multi_grid_cycle(A, f, solution, 2, 2);
@@ -272,13 +257,13 @@ int main()
         		solution_vector[i]=solution(i);
             }
         }
-
+        */
         ImGui::End();
         
     	
         
         plot(a, b, input, output);
-        plot(a, b, input, solution_vector);
+        //plot(a, b, input, solution_vector);
 
 
         ImGui::Render();
