@@ -165,11 +165,10 @@ int main()
 
     float a, b;//boundary values in 1D
     a = 0.0f;
-    b = 1.5f;
+    b = 1.0f;
 
-    int max_levels = 2; //the finest level it will go, also the level it starts from
+    int max_levels = 3; //the finest level it will go, also the level it starts from
     int nx = pow(2.0, max_levels) - 1;
-    float dx = (b - a) / (nx + 1.0f);
 
     //number of cycles
     int mu = 2;
@@ -178,6 +177,8 @@ int main()
     int pre_nu = 1;
     int post_nu = 1;
 
+    nx = 4;
+    float dx = (b - a) / (nx + 1.0f);
 
     std::cout << nx << std::endl;
 
@@ -186,8 +187,19 @@ int main()
 
     for(int i=0;i<nx;i++)
     {
-        output.push_back(function2d_analytical(input[i], input[i]));
+        for(int j=0;j<nx;j++)
+        output.push_back(function2d_analytical(input[j], input[i]));
     }
+    for(int i=0;i<nx;i++)
+    {
+        std::cout << "\n";
+
+	    for(int j=0;j<nx;j++)
+	    {
+            //std::cout << output[nx*i+j] << " ";
+	    }
+    }
+    
     
 
     
@@ -198,23 +210,33 @@ int main()
     setLaplacian(A, dx, dx, nx, nx);
 
     //v
-    nx = 3;
-    Eigen::MatrixXf v(nx * nx,2);
+    nx = 2;
+    Eigen::VectorXf v(nx * nx);
     v.setZero();
-	v.row(0) = Eigen::Vector2f(1, 1);
-    v.row(4) = Eigen::Vector2f(1, 1);
-    v.row(8) = Eigen::Vector2f(1, 1);
+    v(0) = 1;
+    v(3) = 1;
+    //v(8) = 1;
 
-    prolongate2d(v, nx, nx);
+    v = prolongate2d(v, nx, nx);
+    std::cout << "\n-------\n";
+    std::cout << v;
+    restrict2d(v, nx+1, nx+1);
 
     /*
     //f
-    Eigen::VectorXf f(nx);
+    Eigen::VectorXf f(nx*nx);
     for(int i=0;i<nx;i++)
     {
-        f(i) = function_sin_diff2(input[i], b - a);
+        for (int j = 0; j < nx; j++)
+        {
+            f(nx*i+j) = function2d_twicedifferentiated(input[j], input[i]);
+            //f(nx*i+j) = function2d_analytical(input[j], input[i]);
+        }
     }
+    std::cout << std::endl<<f;
+    */
 
+    /*
     Eigen::VectorXf solution = multi_grid_cycle(A, f, v, 2, 2);
     //solution = v;
     std::cout << solution;
@@ -262,7 +284,7 @@ int main()
         
     	
         
-        plot(a, b, input, output);
+        //plot(a, b, input, output);
         //plot(a, b, input, solution_vector);
 
 
