@@ -191,15 +191,7 @@ int main()
         output.push_back(function2d_analytical(input[j], input[i]));
     }
 
-    for(int i=0;i<nx;i++)
-    {
-        //std::cout << "\n";
-
-	    for(int j=0;j<nx;j++)
-	    {
-            //std::cout << output[nx*i+j] << " ";
-	    }
-    }
+    
     
     
 
@@ -255,9 +247,22 @@ int main()
 
     //Eigen::VectorXf solution = 
 
-	multi_grid_cycle2d(A,f,v,3,3,nx,nx,dx,dx);
+	v=multi_grid_cycle2d(A,f,v,5,5,nx,nx,dx,dx);
 
 
+    std::cout << "\n-----Real--------\n";
+    for (int i = 0; i < nx; i++)
+    {
+        std::cout << "\n";
+
+        for (int j = 0; j < nx; j++)
+        {
+            std::cout << output[nx*i+j] << " ";
+        }
+    }
+    std::cout << "\n-----Found--------\n";
+
+    print_as_matrix(v,nx);
 
 	// render loop
     // -----------

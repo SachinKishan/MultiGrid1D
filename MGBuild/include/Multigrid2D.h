@@ -8,7 +8,7 @@
 
 float function2d_analytical(float x,float y)
 {
-    return powf(x,3) + powf(y,2);
+    return powf(x,3) + powf(y,3);
 
 	//return (powf(x, 2) - powf(x, 4)) * 
 		//(powf(y, 4) - powf(y, 2));
@@ -17,7 +17,7 @@ float function2d_analytical(float x,float y)
 float function2d_twicedifferentiated(float x,float y)
 {
     float xcomp = 6.0f * x;
-    float ycomp = 2.0f;
+    float ycomp = 6.0f * y;
 
     return xcomp + ycomp;
 
@@ -181,9 +181,17 @@ Eigen::VectorXf restrict2d(Eigen::VectorXf fineV, int &nx, int &ny)
 
 }
 
-void print_as_matrix()
+void print_as_matrix(Eigen::VectorXf v, int nx)
 {
-	
+    for (int i = 0; i < nx; i++)
+    {
+        std::cout << "\n";
+
+        for (int j = 0; j < nx; j++)
+        {
+            std::cout << v(nx*i+j) << " ";
+        }
+    }
 }
 
 
