@@ -2,9 +2,7 @@
 
 #define PI 3.14159265359
 #include "Eigen/Sparse"
-#include "glm.hpp"
 
-#include "implot.h"
 
 float function2d_analytical(float x,float y)
 {
@@ -204,7 +202,7 @@ Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf
     Eigen::VectorXf residual = f - A * v;
 
     //restriction (to coarse)
-
+    // the nx and ny are referenced and changed based on the restrict2d new nx and new ny
     Eigen::VectorXf coarser_residual = restrict2d(residual,nx,ny);
 
 	Eigen::SparseMatrix<float> coarser_A(nx*nx, ny*ny);
@@ -218,9 +216,14 @@ Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf
     //solve coarse grid
     if (nx > 1)
     {
-        std::cout << "Coarsened further";
-        std::cout << "\n" << nx << "\n";
+        std::cout << "\nCoarsened further to an nx of ";
+        std::cout << nx << "\n";
         coarser_v = multi_grid_cycle2d(coarser_A, coarser_residual, coarser_v, nu1, nu2, nx, ny, dx/2, dy/2);
+    }
+    else if(nx==1)
+    {
+        std::cout << "max coarseness reached";
+        coarser_v = jacobi2D(coarser_v, coarser_residual, coarser_A, 50, 0.8f); //solve 
     }
     
     //prolong it back
