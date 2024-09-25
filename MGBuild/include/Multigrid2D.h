@@ -8,8 +8,7 @@
 
 float function2d_analytical(float x,float y)
 {
-    return powf(x,3) + powf(y,3);
-    return powf(x, 2) + y;
+    return powf(x,3) + powf(y,2);
 
 	//return (powf(x, 2) - powf(x, 4)) * 
 		//(powf(y, 4) - powf(y, 2));
@@ -17,8 +16,10 @@ float function2d_analytical(float x,float y)
 
 float function2d_twicedifferentiated(float x,float y)
 {
-    return 6*x + 6*y;
+    float xcomp = 6.0f * x;
+    float ycomp = 2.0f;
 
+    return xcomp + ycomp;
 
 	return 2 * ((1 - 6 * x * x) * y * y * (1 - y * y) + (1 - 6 * y * y) * x * x * (1 - x * x));
 }
@@ -78,7 +79,7 @@ void setLaplacian(Eigen::SparseMatrix<float> &A, float dx, float dy, float nx, f
 
     Eigen::SparseMatrix<float> Bhy(nx, ny);
     // Set the matrix values from the triplet list
-    Bhx.setFromTriplets(tripletListy.begin(), tripletListy.end());
+    Bhy.setFromTriplets(tripletListy.begin(), tripletListy.end());
 
     A = Bhx + Bhy;
 
@@ -86,7 +87,7 @@ void setLaplacian(Eigen::SparseMatrix<float> &A, float dx, float dy, float nx, f
 
 }
 
-void jacobi2D(Eigen::VectorXf v, Eigen::VectorXf f,Eigen::SparseMatrix<float>& A,int n, float w)
+Eigen::VectorXf jacobi2D(Eigen::VectorXf v, Eigen::VectorXf f,Eigen::SparseMatrix<float>& A,int n, float w)
 {
     Eigen::VectorXf inverse_diagonal = A.diagonal();
     Eigen::MatrixXf off_diagonal = A;
@@ -101,14 +102,17 @@ void jacobi2D(Eigen::VectorXf v, Eigen::VectorXf f,Eigen::SparseMatrix<float>& A
     	Eigen::VectorXf residual = f - off_diagonal * v;
     	v = (1 - w) * v + w * inverse_diagonal.cwiseProduct(residual);
     }
-
+    return v;
 }
 
 Eigen::VectorXf prolongate2d(Eigen::VectorXf coarseV, int nx, int ny)
 {
 
     int newNx = nx * 2 - 1;
+    if (newNx == 1)newNx = 2;
     int newNy = ny * 2 - 1;
+    if (newNy == 1)newNy = 2;
+
     Eigen::VectorXf newMat(newNx*newNy);
 
     newMat.setZero();
@@ -142,7 +146,7 @@ Eigen::VectorXf prolongate2d(Eigen::VectorXf coarseV, int nx, int ny)
 
 }
 
-Eigen::VectorXf restrict2d(Eigen::VectorXf fineV, int nx, int ny)
+Eigen::VectorXf restrict2d(Eigen::VectorXf fineV, int &nx, int &ny)
 {
     int newNx = (nx+1)/2  ;
     int newNy = (ny + 1) / 2 ;
@@ -170,6 +174,57 @@ Eigen::VectorXf restrict2d(Eigen::VectorXf fineV, int nx, int ny)
     }
     std::cout << "\n----restriction-----\n" << newMat;
 
+    nx = newNx;
+    ny = newNy;
+
     return newMat;
+
+}
+
+void print_as_matrix()
+{
+	
+}
+
+
+Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf f, Eigen::VectorXf v, int nu1, int nu2, int nx, int ny, float dx, float dy)
+{
+    //relaxation
+    v = jacobi2D(v, f, A, nu1, 0.8f);
+
+    //find residual
+    Eigen::VectorXf residual = f - A * v;
+
+    //restriction (to coarse)
+
+    Eigen::VectorXf coarser_residual = restrict2d(residual,nx,ny);
+
+	Eigen::SparseMatrix<float> coarser_A(nx*nx, ny*ny);
+
+	setLaplacian(coarser_A,dx,dy,nx*nx,ny*ny);
+
+
+    Eigen::VectorXf coarser_v(nx*nx);
+    coarser_v.setZero();
+    //std::cout << "Rows of residual: " << coarser_residual.rows();
+    //solve coarse grid
+    if (nx > 1)
+    {
+        std::cout << "Coarsened further";
+        std::cout << "\n" << nx << "\n";
+        coarser_v = multi_grid_cycle2d(coarser_A, coarser_residual, coarser_v, nu1, nu2, nx, ny, dx/2, dy/2);
+    }
+    
+    //prolong it back
+    Eigen::VectorXf prolonged_vector = prolongate2d(coarser_v, nx, ny);
+
+    //std::cout << "\nPROLONGED: " << prolonged_vector.rows();
+    //std::cout << "\ncurrent: " << v.rows();
+
+    v = v + prolonged_vector;
+    //post-relaxation
+    v = jacobi2D(v, f, A, nu2, 0.8f);
+
+    return (v);
 
 }

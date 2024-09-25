@@ -177,10 +177,10 @@ int main()
     int pre_nu = 1;
     int post_nu = 1;
 
-    nx = 4;
+    nx = 5;
     float dx = (b - a) / (nx + 1.0f);
 
-    std::cout << nx << std::endl;
+    //std::cout << nx << std::endl;
 
     std::vector<float> input= interpolate_line(a + dx, b - dx, dx, nx);
     std::vector<float> output;
@@ -190,9 +190,10 @@ int main()
         for(int j=0;j<nx;j++)
         output.push_back(function2d_analytical(input[j], input[i]));
     }
+
     for(int i=0;i<nx;i++)
     {
-        std::cout << "\n";
+        //std::cout << "\n";
 
 	    for(int j=0;j<nx;j++)
 	    {
@@ -207,22 +208,22 @@ int main()
     //laplace A
     Eigen::SparseMatrix<float> A(nx, nx);
 
-    setLaplacian(A, dx, dx, nx, nx);
+    setLaplacian(A, dx, dx, nx*nx, nx*nx);
 
     //v
-    nx = 2;
+    //nx = 2;
     Eigen::VectorXf v(nx * nx);
     v.setZero();
-    v(0) = 1;
-    v(3) = 1;
+    //v(0) = 1;
+    //v(3) = 1;
     //v(8) = 1;
 
-    v = prolongate2d(v, nx, nx);
-    std::cout << "\n-------\n";
-    std::cout << v;
-    restrict2d(v, nx+1, nx+1);
+    //v = prolongate2d(v, nx, nx);
+    //std::cout << "\n-------\n";
+    //std::cout << v;
+    //restrict2d(v, nx+1, nx+1);
 
-    /*
+    
     //f
     Eigen::VectorXf f(nx*nx);
     for(int i=0;i<nx;i++)
@@ -233,8 +234,12 @@ int main()
             //f(nx*i+j) = function2d_analytical(input[j], input[i]);
         }
     }
-    std::cout << std::endl<<f;
-    */
+    //std::cout << std::endl<<f;
+
+
+    //Eigen::VectorXf jacobi_sample = jacobi2D(v, f, A, 55, 4.0/5.0);
+
+    //std::cout << "\nJacobi\n" << jacobi_sample;
 
     /*
     Eigen::VectorXf solution = multi_grid_cycle(A, f, v, 2, 2);
@@ -247,6 +252,13 @@ int main()
         solution_vector.push_back(solution(i));
     }
     */
+
+    //Eigen::VectorXf solution = 
+
+	multi_grid_cycle2d(A,f,v,3,3,nx,nx,dx,dx);
+
+
+
 	// render loop
     // -----------
     while (!glfwWindowShouldClose(window))

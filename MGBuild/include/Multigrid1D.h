@@ -156,7 +156,7 @@ Eigen::VectorXf multi_grid_cycle(Eigen::SparseMatrix<float> A, Eigen::VectorXf f
 	//post-relaxation
     v = weighted_gauss_jacobi(A, f, v, 2.0 / 3.0,nu2);
 
-    return (v/3);
+    return (v);
 
 }
 
@@ -177,21 +177,15 @@ float function_sin_diff2(float x, float L = 1.5f, int k = 2)
 
 void plot(float a, float b, std::vector<float> input, std::vector<float> output)
 {
-
- 
-
     //std::cout << "\nMax: " << max;
-    
     ImGui::Begin("Solution Plot");
     //ImPlot::SetNextAxesLimits(a, b, -2, 2, ImGuiCond_Always);
-	if (ImPlot::BeginPlot("Plot")) {
+    if (ImPlot::BeginPlot("Plot")) {
         ImPlot::PlotLine("Actual", input.data(),
             output.data(), input.size());
         ImPlot::EndPlot();
     }
-    
     ImGui::End();
-
 }
 
 std::vector<float>interpolate_line(float a, float b, float step, int n)
