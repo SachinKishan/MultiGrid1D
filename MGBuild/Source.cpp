@@ -177,7 +177,7 @@ int main()
     int pre_nu = 1;
     int post_nu = 1;
 
-    nx = 5;
+    nx = 9;
     float dx = (b - a) / (nx + 1.0f);
 
     //std::cout << nx << std::endl;
@@ -200,7 +200,7 @@ int main()
     //laplace A
     Eigen::SparseMatrix<float> A(nx, nx);
 
-    setLaplacian(A, dx, dx, nx*nx, nx*nx);
+    setLaplacian(A, dx, dx, nx, nx);
 
     //v
     //nx = 2;
@@ -247,7 +247,7 @@ int main()
 
     //Eigen::VectorXf solution = 
 
-	v=multi_grid_cycle2d(A,f,v,5,5,nx,nx,dx,dx);
+	v=multi_grid_cycle2d(A,f,v,2,2,nx,nx,dx,dx);
 
 
     std::cout << "\n-----Real--------\n";

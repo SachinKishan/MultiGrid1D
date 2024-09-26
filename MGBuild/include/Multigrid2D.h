@@ -22,9 +22,33 @@ float function2d_twicedifferentiated(float x,float y)
 	return 2 * ((1 - 6 * x * x) * y * y * (1 - y * y) + (1 - 6 * y * y) * x * x * (1 - x * x));
 }
 
+
+// Kronecker product function for sparse matrices
+Eigen::SparseMatrix<float> kroneckerProduct(const Eigen::SparseMatrix<float>& A, const Eigen::SparseMatrix<float>& B) {
+    int rowsA = A.rows(), colsA = A.cols();
+    int rowsB = B.rows(), colsB = B.cols();
+
+    Eigen::SparseMatrix<float> result(rowsA * rowsB, colsA * colsB);
+    std::vector<Eigen::Triplet<float>> triplets;
+
+    for (int kA = 0; kA < A.outerSize(); ++kA) {
+        for (typename Eigen::SparseMatrix<float>::InnerIterator itA(A, kA); itA; ++itA) {
+            for (int kB = 0; kB < B.outerSize(); ++kB) {
+                for (typename Eigen::SparseMatrix<float>::InnerIterator itB(B, kB); itB; ++itB) {
+                    triplets.emplace_back(itA.row() * B.rows() + itB.row(), itA.col() * B.cols() + itB.col(),
+                        itA.value() * itB.value());
+                }
+            }
+        }
+    }
+
+    result.setFromTriplets(triplets.begin(), triplets.end());
+    return result;
+}
+
 void setLaplacian(Eigen::SparseMatrix<float> &A, float dx, float dy, float nx, float ny)
 {
-
+    A.setZero();
 	Eigen::SparseMatrix<float> Ix = Eigen::SparseMatrix<float>(nx, nx);
 	Eigen::SparseMatrix<float> Iy = Eigen::SparseMatrix<float>(ny, ny);
 
@@ -32,9 +56,9 @@ void setLaplacian(Eigen::SparseMatrix<float> &A, float dx, float dy, float nx, f
 	Iy.setIdentity();
 
     // List of triplets to hold the non-zero elements
-    std::vector<Eigen::Triplet<double>> tripletListx;
+    std::vector<Eigen::Triplet<float>> tripletListx;
     tripletListx.reserve(3 * nx - 2); // We have 3 diagonals: main, lower, upper
-
+    
     // Fill the triplet list with values corresponding to the diagonals
     for (int i = 0; i < nx; ++i) {
         if (i > 0) {
@@ -52,6 +76,7 @@ void setLaplacian(Eigen::SparseMatrix<float> &A, float dx, float dy, float nx, f
     }
 
     Eigen::SparseMatrix<float> Bhx(nx,ny);
+    Bhx.setZero();
     // Set the matrix values from the triplet list
     Bhx.setFromTriplets(tripletListx.begin(), tripletListx.end());
 
@@ -76,12 +101,16 @@ void setLaplacian(Eigen::SparseMatrix<float> &A, float dx, float dy, float nx, f
     }
 
     Eigen::SparseMatrix<float> Bhy(nx, ny);
+    Bhy.setZero();
     // Set the matrix values from the triplet list
     Bhy.setFromTriplets(tripletListy.begin(), tripletListy.end());
 
-    A = Bhx + Bhy;
 
-    //std::cout << A;
+    A= kroneckerProduct(Iy, Bhx) + kroneckerProduct(Bhy, Ix);
+
+    //A = Bhx + Bhy;
+
+    std::cout << A;
 
 }
 
@@ -207,7 +236,7 @@ Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf
 
 	Eigen::SparseMatrix<float> coarser_A(nx*nx, ny*ny);
 
-	setLaplacian(coarser_A,dx,dy,nx*nx,ny*ny);
+	setLaplacian(coarser_A,dx,dy,nx,ny);
 
 
     Eigen::VectorXf coarser_v(nx*nx);
@@ -231,10 +260,11 @@ Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf
 
     //std::cout << "\nPROLONGED: " << prolonged_vector.rows();
     //std::cout << "\ncurrent: " << v.rows();
-
+    if (v.rows() != prolonged_vector.rows())std::cout << "\nTHE PROLONGED VECTOR AND ORIGINAL VECTOR DONT MATCH\nOriginal: " << v.rows()
+        << "\nPROLONGED: " << prolonged_vector.rows() <<std::endl;
     v = v + prolonged_vector;
     //post-relaxation
-    v = jacobi2D(v, f, A, nu2, 0.8f);
+    v = jacobi2D(v, f, A, nu2, 0.9f);
 
     return (v);
 
