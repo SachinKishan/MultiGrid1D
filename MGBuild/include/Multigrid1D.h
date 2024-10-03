@@ -70,7 +70,6 @@ Eigen::VectorXf restriction_vector(Eigen::VectorXf r)
     {
         restricted_vector(i) = r(i*2);
     }
-	
 
     return restricted_vector;
 }
@@ -104,6 +103,7 @@ Eigen::SparseMatrix<float> restriction_matrix(const Eigen::SparseMatrix<float>& 
 
     return restricted_A;
 }
+//pass by reference, so no need for copies, no need for returns either- less memory usage
 
 Eigen::VectorXf weighted_gauss_jacobi(Eigen::SparseMatrix<float> A, Eigen::VectorXf f, Eigen::VectorXf v, float weight, float nu = 1)
 {
@@ -145,6 +145,7 @@ Eigen::VectorXf multi_grid_cycle(Eigen::SparseMatrix<float> A, Eigen::VectorXf f
         std::cout << "Coarsened further";
         coarser_v = multi_grid_cycle(coarser_A, coarser_residual, coarser_v, nu1, nu2);
     }
+    //have a direct solve
 
     //prolong it back
     Eigen::VectorXf prolonged_vector = prolongation_vector(coarser_v);
@@ -192,10 +193,10 @@ std::vector<float>interpolate_line(float a, float b, float step, int n)
 {
     std::vector<float> output;
     //output.push_back(0);
-    for (int i = 1; i <= n; i++)
+    for (int i = 0; i < n; i++)
     {
-        std::cout << i * step<<"  ";
-        output.push_back(i * step);
+        std::cout <<a+ i * step<<"  ";
+        output.push_back(a+i * step);
     }
     return output;
 }

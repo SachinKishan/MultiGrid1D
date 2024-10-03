@@ -1,4 +1,6 @@
 //#include "imgui.h"
+#include <iomanip>
+
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
@@ -167,102 +169,61 @@ int main()
     a = 0.0f;
     b = 1.0f;
 
-    int max_levels = 3; //the finest level it will go, also the level it starts from
-    int nx = pow(2.0, max_levels) - 1;
+    int nx = 3;
+    float dx = (b - a) / (nx + 1);
 
-    //number of cycles
-    int mu = 2;
-
-    //number of pre and post relaxations
-    int pre_nu = 1;
-    int post_nu = 1;
-
-    nx = 9;
-    float dx = (b - a) / (nx + 1.0f);
-
-    //std::cout << nx << std::endl;
-
-    std::vector<float> input= interpolate_line(a + dx, b - dx, dx, nx);
+    std::vector<float> input = interpolate_line(a + dx, b - dx, dx, nx);
     std::vector<float> output;
 
-    for(int i=0;i<nx;i++)
+    for (int i = 0; i < nx; i++)
     {
-        for(int j=0;j<nx;j++)
-        output.push_back(function2d_analytical(input[j], input[i]));
+        for (int j = 0; j < nx; j++)
+        {
+            output.push_back(0);
+            output[i * (nx)+j] = function2d_analytical(input[j], input[i]);
+        }
     }
 
-    
-    
-    
-
-    
     //Av=f
     //laplace A
     Eigen::SparseMatrix<float> A(nx, nx);
 
     setLaplacian(A, dx, dx, nx, nx);
+    std::cout << "\nLaplacian\n" << A;
 
-    //v
-    //nx = 2;
-    Eigen::VectorXf v(nx * nx);
-    v.setZero();
-    //v(0) = 1;
-    //v(3) = 1;
-    //v(8) = 1;
-
-    //v = prolongate2d(v, nx, nx);
-    //std::cout << "\n-------\n";
-    //std::cout << v;
-    //restrict2d(v, nx+1, nx+1);
-
-    
     //f
-    Eigen::VectorXf f(nx*nx);
-    for(int i=0;i<nx;i++)
+    Eigen::VectorXf f((nx) * (nx));
+    for (int i = 0; i < nx; i++)
     {
         for (int j = 0; j < nx; j++)
         {
-            f(nx*i+j) = function2d_twicedifferentiated(input[j], input[i]);
-            //f(nx*i+j) = function2d_analytical(input[j], input[i]);
+            f((nx)*i + j) = function2d_twicedifferentiated(input[j], input[i]);
         }
     }
-    //std::cout << std::endl<<f;
+    std::cout << "\nf\n";
+    print_as_matrix(f, nx);
 
+    Eigen::VectorXf v(nx * nx);
+    v.setZero();
+    Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
 
-    //Eigen::VectorXf jacobi_sample = jacobi2D(v, f, A, 55, 4.0/5.0);
+    solver.compute(A);
+    v = solver.solve(f);
 
-    //std::cout << "\nJacobi\n" << jacobi_sample;
+    std::cout << "\n\nFound Solution: \n";
+    print_as_matrix(v, nx);
 
-    /*
-    Eigen::VectorXf solution = multi_grid_cycle(A, f, v, 2, 2);
-    //solution = v;
-    std::cout << solution;
-
-    std::vector<float> solution_vector;
-    for(int i=0;i<solution.rows();i++)
-    {
-        solution_vector.push_back(solution(i));
-    }
-    */
-
-    //Eigen::VectorXf solution = 
-
-	v=multi_grid_cycle2d(A,f,v,2,2,nx,nx,dx,dx);
-
-
-    std::cout << "\n-----Real--------\n";
+    std::cout << "\n-----Actual--------\n";
     for (int i = 0; i < nx; i++)
     {
         std::cout << "\n";
 
         for (int j = 0; j < nx; j++)
         {
-            std::cout << output[nx*i+j] << " ";
+            std::cout << output[(nx)*i + j] << " ";
         }
     }
-    std::cout << "\n-----Found--------\n";
-
-    print_as_matrix(v,nx);
+   
 
 	// render loop
     // -----------

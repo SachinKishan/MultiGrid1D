@@ -3,9 +3,45 @@
 #define PI 3.14159265359
 #include "Eigen/Sparse"
 
+void applyDirichletBoundary(Eigen::SparseMatrix<float>& A, Eigen::VectorXf& f, int nx, int ny) {
+    std::vector<Eigen::Triplet<float>> boundaryTriplets;
 
-float function2d_analytical(float x,float y)
+    // Handle boundary rows and columns
+    for (int i = 0; i < nx; ++i) {
+        for (int j = 0; j < ny; ++j) {
+            // Convert (i, j) to a 1D index
+            int index = i * ny + j;
+
+            // Check if the point is on the boundary
+            if (i == 0 || i == nx - 1 || j == 0 || j == ny - 1) {
+                
+            	// Set the corresponding row in A to zero
+                //for (Eigen::SparseMatrix<float>::InnerIterator it(A, index); it; ++it) {
+                    //it.valueRef() = 0.0f;
+                //}
+                
+                A.coeffRef(i, j) = 1.0f;
+                // Set the diagonal element to 1
+				if (i == j)
+                    A.coeffRef(i, j) = 1.0f;
+                else
+                    A.coeffRef(i,j) = 0.0f;
+                    
+                // Set the corresponding entry in f to 0 (Dirichlet boundary condition)
+                //f(index) = 0.0f;
+            }
+        }
+    }
+
+    // You don't need to setFromTriplets again since you're modifying the matrix directly.
+}
+
+
+
+float function2d_analytical(float x, float y)
 {
+    
+
     return powf(x,3) + powf(y,3);
 
 	//return (powf(x, 2) - powf(x, 4)) * 
@@ -110,7 +146,6 @@ void setLaplacian(Eigen::SparseMatrix<float> &A, float dx, float dy, float nx, f
 
     //A = Bhx + Bhy;
 
-    std::cout << A;
 
 }
 
@@ -252,7 +287,8 @@ Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf
     else if(nx==1)
     {
         std::cout << "max coarseness reached";
-        coarser_v = jacobi2D(coarser_v, coarser_residual, coarser_A, 50, 0.8f); //solve 
+        coarser_v = jacobi2D(coarser_v, coarser_residual, coarser_A, 50, 0.8f); //solve
+        //run a direct solver here, one that is time consuming but fine to run on coarse meshes
     }
     
     //prolong it back
