@@ -132,6 +132,31 @@ Eigen::VectorXf jacobi2D(Eigen::VectorXf v, Eigen::VectorXf f,Eigen::SparseMatri
     return v;
 }
 
+Eigen::SparseMatrix<float> createProlongationOperator(int nx)
+{
+    int newNx = nx * 2 - 1;
+    if (newNx == 1)newNx = 2;
+    Eigen::SparseMatrix<float> prolongator1D(newNx, nx);
+
+    // Reserve enough space to avoid reallocations
+    prolongator1D.reserve(Eigen::VectorXi::Constant(nx, 3)); 
+
+    // Fill the prolongation matrix
+    for (int i = 0; i < nx; i++)
+    {
+        // Insert the direct mapping
+        prolongator1D.insert(2 * i, i) = 1.0f;  
+        // Insert the interpolation if i < nx - 1
+        if (i < nx - 1)
+        {
+            prolongator1D.insert(2 * i + 1, i) = 0.5f;   // Interpolate with the current coarse point
+            prolongator1D.insert(2 * i + 1, i + 1) = 0.5f;  // Interpolate with the next coarse point
+        }
+    }
+    return kroneckerProduct(prolongator1D,prolongator1D);
+
+}
+
 Eigen::VectorXf prolongate2d(Eigen::VectorXf coarseV, int nx, int ny)
 {
 
@@ -144,6 +169,39 @@ Eigen::VectorXf prolongate2d(Eigen::VectorXf coarseV, int nx, int ny)
 
     newMat.setZero();
 
+
+
+
+    Eigen::SparseMatrix<float> prolongator1D(newNx, nx);
+
+    // Reserve enough space to avoid reallocations
+    //prolongator1D.reserve(Eigen::VectorXi::Constant(nx, 3)); // 2-3 non-zero elements per column
+
+    // Fill the prolongation matrix
+    for (int i = 0; i < nx; i++)
+    {
+        // Insert the direct mapping
+        prolongator1D.insert(2 * i, i) = 1.0f;  // Direct copy of coarse grid point
+
+        // Insert the interpolation if i < nx - 1
+        if (i < nx - 1)
+        {
+            prolongator1D.insert(2 * i + 1, i) = 0.5f;   // Interpolate with the current coarse point
+            prolongator1D.insert(2 * i + 1, i + 1) = 0.5f;  // Interpolate with the next coarse point
+        }
+    }
+
+    
+    std::cout << "\nPrologator\n"<<prolongator1D;
+
+    Eigen::SparseMatrix<float> I= kroneckerProduct(prolongator1D, prolongator1D);
+
+    Eigen::VectorXf new_v = I * coarseV;
+
+    std::cout << "\n\ndimensions: " << I.rows() << " x " << I.cols();
+
+
+    /*
     std::cout << "\n----Original mat---------\n";
     std::cout << coarseV;
     std::cout << "\n----\n";
@@ -166,10 +224,12 @@ Eigen::VectorXf prolongate2d(Eigen::VectorXf coarseV, int nx, int ny)
                      + coarseV(nx * (i + 1) + j + 1));
 	    }
     }
-    std::cout << "\n----new mat---------\n";
+    */
+    //std::cout << "\n----new mat---------\n";
 
-    std::cout<<std::endl << std::endl << newMat;
-    return newMat;
+    //std::cout<<std::endl << std::endl << newMat;
+    
+    return new_v;
 
 }
 
@@ -177,9 +237,9 @@ Eigen::VectorXf restrict2d(Eigen::VectorXf fineV, int &nx, int &ny)
 {
     int newNx = (nx+1)/2  ;
     int newNy = (ny + 1) / 2 ;
-    Eigen::VectorXf newMat(newNx * newNy);
-    newMat.setZero();
-
+    // Eigen::VectorXf newMat(newNx * newNy);
+    // newMat.setZero();
+    /*
     for(int i=0;i<newNx;i++)
     {
 	    for(int j=0;j<newNy;j++)
@@ -199,12 +259,20 @@ Eigen::VectorXf restrict2d(Eigen::VectorXf fineV, int &nx, int &ny)
             newMat(newNx * i + j) = 1.0f / 16.0f * (a + 4 * b + 4 * c + 16 * d);
 	    }
     }
-    std::cout << "\n----restriction-----\n" << newMat;
+    */
+    //std::cout << "\n----restriction-----\n" << newMat;
 
     nx = newNx;
     ny = newNy;
 
-    return newMat;
+
+    Eigen::SparseMatrix<float> I = createProlongationOperator(newNx);
+    
+    //std::cout << "\n\ndimensions: " << I.rows() << " x " << I.cols();
+    //std::cout << "\n\n v dimensions: " << fineV.rows() << " x " << fineV.cols();
+
+	Eigen::VectorXf new_v = I.transpose() * fineV;
+    return new_v;
 
 }
 
@@ -222,7 +290,7 @@ void print_as_matrix(Eigen::VectorXf v, int nx)
 }
 
 
-Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf f, Eigen::VectorXf v, int nu1, int nu2, int nx, int ny, float dx, float dy)
+Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf f, Eigen::VectorXf v, int nu1, int nu2, int nx, int ny, float dx, float dy, int level)
 {
     //relaxation
     v = jacobi2D(v, f, A, nu1, 0.8f);
@@ -247,9 +315,9 @@ Eigen::VectorXf multi_grid_cycle2d(Eigen::SparseMatrix<float> A, Eigen::VectorXf
     {
         std::cout << "\nCoarsened further to an nx of ";
         std::cout << nx << "\n";
-        coarser_v = multi_grid_cycle2d(coarser_A, coarser_residual, coarser_v, nu1, nu2, nx, ny, dx/2, dy/2);
+        coarser_v = multi_grid_cycle2d(coarser_A, coarser_residual, coarser_v, nu1, nu2, nx, ny, dx/2, dy/2, level+1);
     }
-    else if(nx==1)
+    else if(nx==1 || level==5)
     {
         std::cout << "max coarseness reached";
         coarser_v = jacobi2D(coarser_v, coarser_residual, coarser_A, 50, 0.8f); //solve 

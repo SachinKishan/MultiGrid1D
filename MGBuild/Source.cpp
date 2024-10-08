@@ -177,7 +177,7 @@ int main()
     int pre_nu = 1;
     int post_nu = 1;
 
-    nx = 9;
+    nx = 5;
     float dx = (b - a) / (nx + 1.0f);
 
     //std::cout << nx << std::endl;
@@ -207,14 +207,20 @@ int main()
     Eigen::VectorXf v(nx * nx);
     v.setZero();
     //v(0) = 1;
-    //v(3) = 1;
+    //v(4) = 1;
     //v(8) = 1;
+
+    //print_as_matrix(v, nx);
 
     //v = prolongate2d(v, nx, nx);
     //std::cout << "\n-------\n";
-    //std::cout << v;
-    //restrict2d(v, nx+1, nx+1);
+  //  print_as_matrix(v,nx*2-1);
 
+
+    //v=restrict2d(v, nx, nx);
+    //std::cout << "\n-------\n";
+    //print_as_matrix(v,nx);
+    
     
     //f
     Eigen::VectorXf f(nx*nx);
@@ -229,10 +235,6 @@ int main()
     //std::cout << std::endl<<f;
 
 
-    //Eigen::VectorXf jacobi_sample = jacobi2D(v, f, A, 55, 4.0/5.0);
-
-    //std::cout << "\nJacobi\n" << jacobi_sample;
-
     /*
     Eigen::VectorXf solution = multi_grid_cycle(A, f, v, 2, 2);
     //solution = v;
@@ -246,8 +248,8 @@ int main()
     */
 
     //Eigen::VectorXf solution = 
-
-	v=multi_grid_cycle2d(A,f,v,2,2,nx,nx,dx,dx);
+    
+	v=multi_grid_cycle2d(A,f,v,2,2,nx,nx,dx,dx,1);
 
 
     std::cout << "\n-----Real--------\n";
@@ -263,7 +265,7 @@ int main()
     std::cout << "\n-----Found--------\n";
 
     print_as_matrix(v,nx);
-
+    
 	// render loop
     // -----------
     while (!glfwWindowShouldClose(window))
