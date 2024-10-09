@@ -169,7 +169,7 @@ int main()
     a = 0.0f;
     b = 1.0f;
 
-    int nx = 3;
+    int nx = 5;
     float dx = (b - a) / (nx + 1);
 
     std::vector<float> input = interpolate_line(a + dx, b - dx, dx, nx);
@@ -193,21 +193,43 @@ int main()
 
     //f
     Eigen::VectorXf f((nx) * (nx));
-    for (int i = 0; i < nx; i++)
+
+    Eigen::SparseMatrix<float> F((nx) * nx, (nx)*nx);
+    F.setZero();
+	for (int i = 0; i < nx; i++)
     {
         for (int j = 0; j < nx; j++)
         {
-            f((nx)*i + j) = function2d_twicedifferentiated(input[j], input[i]);
+            if (i == 0 || j == 0 || j == nx - 1 || i == nx - 1) //set value at boundary to known function value
+            {
+                f((nx)*i + j) = function2d_analytical(input[j], input[i]);
+                F.coeffRef((nx)*i + j, (nx)*i + j) = 1;
+            }
+            else
+                f((nx)*i + j) = 0; //set whatever inside as 0 ie we dont know it and the second derivative is supposed to be 0
+
         }
     }
-    std::cout << "\nf\n";
+	std::cout << "\nf\n";
+
+    //forcing function
     print_as_matrix(f, nx);
+
+    std::cout << "\nF\n";
+    std::cout << F;
+
+    Eigen::SparseMatrix<float> I = Eigen::SparseMatrix<float>(nx * nx, nx * nx);
+    I.setIdentity();
+    Eigen::SparseMatrix<float> L = F + (I - F) * A;
+
+	std::cout << "\nL\n";
+    std::cout << L;
 
     Eigen::VectorXf v(nx * nx);
     v.setZero();
     Eigen::SparseLU<Eigen::SparseMatrix<float>> solver;
 
-    solver.compute(A);
+    solver.compute(L);
     v = solver.solve(f);
 
     std::cout << "\n\nFound Solution: \n";

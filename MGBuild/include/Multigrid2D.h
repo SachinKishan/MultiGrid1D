@@ -40,9 +40,10 @@ void applyDirichletBoundary(Eigen::SparseMatrix<float>& A, Eigen::VectorXf& f, i
 
 float function2d_analytical(float x, float y)
 {
-    
 
-    return powf(x,3) + powf(y,3);
+    return x + y;
+
+    //return powf(x,3) + powf(y,3);
 
 	//return (powf(x, 2) - powf(x, 4)) * 
 		//(powf(y, 4) - powf(y, 2));
